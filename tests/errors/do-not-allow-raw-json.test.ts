@@ -72,3 +72,70 @@ test("should throw an error when route middleware responds with raw JSON", async
   })
   t.true(data.error.includes(rawObjectResponseError))
 })
+
+test("should throw an error when a route handler responds with raw null", async (t) => {
+  const { axios } = await getTestRoute(t, {
+    globalSpec: {
+      authMiddleware: {},
+      beforeAuthMiddleware: [
+        async (req, ctx, next) => {
+          try {
+            return await next(req, ctx)
+          } catch (e: any) {
+            return Response.json({ error: e.message }, { status: 500 })
+          }
+        },
+      ],
+    },
+    routeSpec: {
+      methods: ["GET"],
+      jsonBody: z.any(),
+      jsonResponse: z.any(),
+    },
+    routePath: "/",
+    routeFn: () => {
+      return null as any
+    },
+  })
+
+  const { data } = await axios.get("/", {
+    validateStatus: () => true,
+  })
+  t.true(data.error.includes(rawObjectResponseError))
+})
+
+test("should throw an error when route middleware responds with raw null", async (t) => {
+  const { axios } = await getTestRoute(t, {
+    globalSpec: {
+      authMiddleware: {},
+      beforeAuthMiddleware: [
+        async (req, ctx, next) => {
+          try {
+            return await next(req, ctx)
+          } catch (e: any) {
+            return Response.json({ error: e.message }, { status: 500 })
+          }
+        },
+      ],
+    },
+    routeSpec: {
+      methods: ["GET"],
+      jsonBody: z.any(),
+      jsonResponse: z.any(),
+      middleware: [
+        async () => {
+          return null as any
+        },
+      ],
+    },
+    routePath: "/",
+    routeFn: (req, ctx) => {
+      return ctx.json({ ok: true })
+    },
+  })
+
+  const { data } = await axios.get("/", {
+    validateStatus: () => true,
+  })
+  t.true(data.error.includes(rawObjectResponseError))
+})
